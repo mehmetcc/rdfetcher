@@ -44,7 +44,7 @@ impl Page {
     }
 }
 
-#[derive(PartialEq, Eq, Hash)]
+#[derive(PartialEq, Eq, Hash, Debug, Clone)]
 pub struct AbsoluteUrl {
     pub base: String,
     pub relative: Option<String>,

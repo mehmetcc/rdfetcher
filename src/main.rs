@@ -1,7 +1,7 @@
 use rdfetcher::{
     logging,
     page::{AbsoluteUrl, Page},
-    shared_set::SharedSet,
+    visited_urls::VisitedUrls,
 };
 use tracing::info;
 
@@ -12,11 +12,13 @@ async fn main() -> anyhow::Result<()> {
     dotenv::dotenv()?;
     logging::init_logger();
 
-    let set = SharedSet::new();
-    set.insert(INITIAL_URL).await;
+    let visited_urls = VisitedUrls::new();
+    visited_urls
+        .insert_pending(AbsoluteUrl::new(INITIAL_URL, None))
+        .await;
 
-    let initial_size = set.len().await;
-    info!(initial_size, "Initial set size");
+    let initial_size = visited_urls.len().await;
+    info!(initial_size, "Initial visited URLs size");
 
     let initial_page = Page::new(AbsoluteUrl::new(INITIAL_URL, None)).await?;
 
