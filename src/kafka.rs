@@ -73,7 +73,7 @@ impl KafkaSink {
 
         for page in buffer.drain(..) {
             let payload = serde_json::to_string(&page)?;
-            let key = page.url.full_url();
+            let key = page.url.full_url()?;
             let record = FutureRecord::to(topic).payload(&payload).key(&key);
 
             if let Err((err, _)) = self.producer.send(record, Duration::from_secs(0)).await {

@@ -55,6 +55,8 @@ impl Spider {
 
                         match Page::new(link.clone()).await {
                             Ok(p) => {
+                                let absolute_url = p.url.full_url()?;
+
                                 // Mark URL as visited before processing
                                 visited_urls.mark_visited(link.clone()).await;
                                 let _ = local_tx.send(p.clone()).await?;
@@ -69,21 +71,20 @@ impl Spider {
                                         }
                                         debug!(
                                             "Fetched {} - discovered {} new links",
-                                            p.url.full_url(),
-                                            new_links_count
+                                            absolute_url, new_links_count
                                         );
                                     }
                                     Err(e) => {
                                         error!(
                                             "Failed to extract links from {}: {:?}",
-                                            p.url.full_url(),
-                                            e
+                                            absolute_url, e
                                         );
                                     }
                                 }
                             }
                             Err(e) => {
-                                error!("Failed to fetch {}: {:?}", link.full_url(), e);
+                                let absolute_url = link.full_url()?;
+                                error!("Failed to fetch {}: {:?}", absolute_url, e);
                                 visited_urls.mark_visited(link).await;
                             }
                         }

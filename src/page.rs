@@ -1,10 +1,11 @@
+use regex::Regex;
+use scraper::{Html, Selector};
+use serde::Serialize;
 use std::{
     collections::HashSet,
     fmt::{self, Display, Formatter},
 };
-
-use scraper::{Html, Selector};
-use serde::Serialize;
+use url::Url;
 
 #[derive(Clone, Serialize)]
 pub struct Page {
@@ -14,7 +15,8 @@ pub struct Page {
 
 impl Page {
     pub async fn new(url: AbsoluteUrl) -> anyhow::Result<Page> {
-        let text = Page::extract_html(&url.full_url()).await?;
+        let absolute_url = url.full_url()?;
+        let text = Page::extract_html(&absolute_url).await?;
 
         Ok(Page {
             url: url,
@@ -37,12 +39,18 @@ impl Page {
         for element in document.select(&selector) {
             if let Some(href) = element.value().attr("href")
                 && href.ends_with(".html")
+                && !Page::contains_exxxx(href)
             {
                 unique_links.insert(AbsoluteUrl::new(&self.url.base, Some(href)));
             }
         }
 
         Ok(unique_links)
+    }
+
+    fn contains_exxxx(s: &str) -> bool {
+        let re = Regex::new(r"E\d{4}").unwrap();
+        re.is_match(s)
     }
 }
 
@@ -63,16 +71,21 @@ impl AbsoluteUrl {
         }
     }
 
-    pub fn full_url(&self) -> String {
-        let mut full = self.base.clone();
-        match &self.relative {
-            Some(value) => {
-                full.push('/');
-                full.push_str(&value);
-                return full;
-            }
-            None => return full,
-        }
+    pub fn full_url(&self) -> anyhow::Result<String> {
+        let path: String = match &self.relative {
+            Some(value) => AbsoluteUrl::combine_relative_url(&self.base, &value)?,
+            None => self.base.clone(),
+        };
+
+        Ok(path)
+    }
+
+    fn combine_relative_url(base: &str, relative: &str) -> anyhow::Result<String> {
+        // It was noted that one of 10 commandments of Moses was the following:
+        // Thou shall not use this Url library anywhere else
+        let parsed_base_url = Url::parse(base)?;
+        let combined_url = parsed_base_url.join(relative)?;
+        Ok(combined_url.to_string())
     }
 }
 
@@ -97,14 +110,49 @@ mod tests {
     #[test]
     fn test_full_url() {
         // arrange
-        let metadata = AbsoluteUrl::new("google.com", Some("search"));
+        let metadata = AbsoluteUrl::new("https://google.com/", Some("search"));
 
         // act
-        let full_url = metadata.full_url();
+        let full_url = metadata.full_url().unwrap();
 
         // assert
         assert_eq!(
-            "google.com/search".to_string(),
+            "https://google.com/search".to_string(),
+            full_url,
+            "Full Url should contain a backslash"
+        )
+    }
+
+    #[test]
+    fn test_full_url_without_backslash() {
+        // arrange
+        let metadata = AbsoluteUrl::new("https://google.com", Some("search"));
+
+        // act
+        let full_url = metadata.full_url().unwrap();
+
+        // assert
+        assert_eq!(
+            "https://google.com/search".to_string(),
+            full_url,
+            "Full Url should contain a backslash"
+        )
+    }
+
+    #[test]
+    fn test_full_url_with_upward_relative_path() {
+        // arrange
+        let metadata = AbsoluteUrl::new(
+            "https://google.com/search/settings",
+            Some("../../index.html"),
+        );
+
+        // act
+        let full_url = metadata.full_url().unwrap();
+
+        // assert
+        assert_eq!(
+            "https://google.com/index.html".to_string(),
             full_url,
             "Full Url should contain a backslash"
         )
@@ -116,7 +164,7 @@ mod tests {
         let metadata = AbsoluteUrl::new("google.com", None);
 
         // act
-        let full_url = metadata.full_url();
+        let full_url = metadata.full_url().unwrap();
 
         // assert
         assert_eq!(
