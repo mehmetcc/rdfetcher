@@ -1,0 +1,10 @@
+[kafka]
+brokers = "localhost:9092"
+topic = "nonsense.generated"
+compression = "snappy"
+acks = "1"
+timeout_ms = 5000
+buffering_max_ms = 10
+
+[concurrency]
+mask_tasks = 10

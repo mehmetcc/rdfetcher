@@ -7,17 +7,16 @@ use scraper::{Html, Selector};
 
 pub struct Page {
     pub url: AbsoluteUrl,
-    pub html: Html,
+    pub html: String,
 }
 
 impl Page {
     pub async fn new(url: AbsoluteUrl) -> anyhow::Result<Page> {
         let text = Page::extract_html(&url.full_url()).await?;
-        let html = Html::parse_document(&text);
 
         Ok(Page {
             url: url,
-            html: html,
+            html: text,
         })
     }
 
@@ -28,11 +27,12 @@ impl Page {
     }
 
     pub async fn extract_links(&self) -> anyhow::Result<HashSet<AbsoluteUrl>> {
+        let document = Html::parse_document(&self.html);
         let selector =
             Selector::parse("a[href]").map_err(|e| anyhow::anyhow!("Invalid selector: {:?}", e))?;
         let mut unique_links: HashSet<AbsoluteUrl> = HashSet::new();
 
-        for element in self.html.select(&selector) {
+        for element in document.select(&selector) {
             if let Some(href) = element.value().attr("href")
                 && href.ends_with(".html")
             {

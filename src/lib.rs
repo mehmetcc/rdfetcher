@@ -1,4 +1,6 @@
+pub mod config;
+pub mod kafka;
 pub mod logging;
-pub mod orchestrator;
 pub mod page;
+pub mod spider;
 pub mod visited_urls;
