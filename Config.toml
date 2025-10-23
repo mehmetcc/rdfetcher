@@ -1,6 +1,6 @@
 [kafka]
-brokers = "localhost:9092"
-topic = "nonsense.generated"
+brokers = "localhost:9094"
+topic = "rust.api.docs"
 compression = "snappy"
 acks = "1"
 timeout_ms = 5000
@@ -8,3 +8,8 @@ buffering_max_ms = 10
 
 [concurrency]
 mask_tasks = 10
+buffer_size = 128
+
+[dispatch]
+batch_size = 100
+flush_interval_ms = 50

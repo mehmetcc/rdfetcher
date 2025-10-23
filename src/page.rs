@@ -4,7 +4,9 @@ use std::{
 };
 
 use scraper::{Html, Selector};
+use serde::Serialize;
 
+#[derive(Clone, Serialize)]
 pub struct Page {
     pub url: AbsoluteUrl,
     pub html: String,
@@ -44,7 +46,7 @@ impl Page {
     }
 }
 
-#[derive(PartialEq, Eq, Hash, Debug, Clone)]
+#[derive(PartialEq, Eq, Hash, Debug, Clone, Serialize)]
 pub struct AbsoluteUrl {
     pub base: String,
     pub relative: Option<String>,

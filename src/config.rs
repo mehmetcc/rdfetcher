@@ -1,6 +1,7 @@
 #[derive(Debug, Clone, serde::Deserialize)]
 pub struct Config {
     pub kafka: KafkaConfig,
+    pub dispatch: DispatchConfig,
     pub concurrency: ConcurrencyConfig,
 }
 
@@ -25,6 +26,13 @@ pub struct KafkaConfig {
 }
 
 #[derive(Debug, Clone, serde::Deserialize)]
+pub struct DispatchConfig {
+    pub batch_size: usize,
+    pub flush_interval_ms: u64,
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
 pub struct ConcurrencyConfig {
+    pub buffer_size: usize,
     pub mask_tasks: usize,
 }

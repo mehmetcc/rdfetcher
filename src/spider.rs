@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
 use tokio::sync::Semaphore;
-use tracing::{error, info};
+use tokio::sync::mpsc::Sender;
+use tracing::{debug, error, info};
 
 use anyhow::anyhow;
 
@@ -33,7 +34,7 @@ impl Spider {
         })
     }
 
-    pub async fn start(&self) -> anyhow::Result<()> {
+    pub async fn start(&self, tx: Sender<Page>) -> anyhow::Result<()> {
         loop {
             let pending_count = self.visited_urls.pending_count().await;
             if pending_count == 0 {
@@ -47,12 +48,16 @@ impl Spider {
                 .map(|link| {
                     let semaphore = self.semaphore.clone();
                     let visited_urls = self.visited_urls.clone();
+                    let local_tx = tx.clone();
+
                     tokio::spawn(async move {
-                        let _permit = semaphore.acquire().await.unwrap();
+                        let _permit = semaphore.acquire().await?;
+
                         match Page::new(link.clone()).await {
                             Ok(p) => {
                                 // Mark URL as visited before processing
                                 visited_urls.mark_visited(link.clone()).await;
+                                let _ = local_tx.send(p.clone()).await?;
 
                                 match p.extract_links().await {
                                     Ok(found_links) => {
@@ -62,7 +67,7 @@ impl Spider {
                                                 new_links_count += 1;
                                             }
                                         }
-                                        info!(
+                                        debug!(
                                             "Fetched {} - discovered {} new links",
                                             p.url.full_url(),
                                             new_links_count
@@ -82,6 +87,7 @@ impl Spider {
                                 visited_urls.mark_visited(link).await;
                             }
                         }
+
                         Ok::<(), anyhow::Error>(())
                     })
                 })
