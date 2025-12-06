@@ -1,5 +1,5 @@
 [kafka]
-brokers = "localhost:9094"
+brokers = "kafka:9092"
 topic = "rust.api.docs"
 compression = "snappy"
 acks = "1"
